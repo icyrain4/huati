@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#F6F1E9">
+<title>画题 · 三分钟，回应一张画</title>
+<style>
+  :root{
+    --paper:#F6F1E9; --paper2:#EFE7D8; --ink:#1B1A17; --ink2:#4A463D; --ink3:#8B8478;
+    --red:#B2442E; --mint:#3FCFA8; --line:rgba(27,26,23,.12);
+    --serif:"Songti SC","STSong","SimSun","Noto Serif CJK SC",serif;
+    --sans:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei","Helvetica Neue",Arial,sans-serif;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  body{background:#12100E;font-family:var(--sans);color:var(--ink);min-height:100vh;
+       display:flex;align-items:center;justify-content:center;overflow:hidden}
+  .stage{display:flex;align-items:center;justify-content:center;gap:64px;padding:28px}
+  .side{width:262px;color:#CFC6B4;display:none}
+  .side .brand{font-family:var(--serif);font-size:24px;letter-spacing:.3em;color:#F0E7D6}
+  .side .tag{display:inline-block;font-size:10px;letter-spacing:.16em;color:#B2442E;
+             border:1px solid rgba(178,68,46,.55);padding:4px 9px;border-radius:2px;margin-top:14px}
+  .side .rule{height:1px;background:rgba(240,231,214,.2);margin:22px 0}
+  .side p{font-size:12px;line-height:2;color:#9C9486;margin:0 0 13px}
+  .side .qr{width:124px;height:124px;background:#F6F1E9;border-radius:6px;padding:7px;margin-top:6px}
+  .side .qr img{width:100%;display:block}
+
+  .phone{position:relative;width:390px;height:844px;background:var(--paper);border-radius:44px;
+         box-shadow:0 0 0 10px #1b1916,0 0 0 11px #3a352c,0 40px 80px rgba(0,0,0,.6);overflow:hidden}
+  .notch{position:absolute;top:10px;left:50%;transform:translateX(-50%);width:116px;height:27px;background:#000;border-radius:15px;z-index:60}
+  .statusbar{position:absolute;top:0;left:0;right:0;height:46px;z-index:55;display:flex;align-items:center;
+             justify-content:space-between;padding:0 26px;font-size:12.5px;font-weight:600;pointer-events:none;mix-blend-mode:multiply}
+  .statusbar .right{display:flex;gap:5px;align-items:center}
+  .app{position:absolute;inset:0;overflow:hidden}
+
+  .screen{position:absolute;inset:0;display:flex;flex-direction:column;background:var(--paper);
+          overflow-y:auto;overflow-x:hidden;transform:translateX(100%);opacity:0;visibility:hidden;
+          transition:transform .5s cubic-bezier(.22,.8,.26,1),opacity .36s ease;will-change:transform}
+  .screen.active{transform:translateX(0);opacity:1;visibility:visible;z-index:10}
+  .screen.behind{transform:translateX(-14%);opacity:.35;visibility:visible;z-index:5;pointer-events:none}
+  .screen::-webkit-scrollbar{display:none}
+
+  .eyebrow{font-size:10.5px;letter-spacing:.24em;color:var(--red);text-transform:uppercase}
+  .serif{font-family:var(--serif)}
+  h1,h2,h3,p{margin:0}
+  .pad{padding:0 26px}
+
+  .btn{display:flex;align-items:center;justify-content:center;gap:9px;width:100%;height:52px;border:none;
+       border-radius:2px;background:var(--ink);color:#F7F2E6;font-family:var(--sans);font-size:14.5px;
+       letter-spacing:.08em;cursor:pointer;transition:transform .16s,background .2s}
+  .btn:active{transform:scale(.985);background:#000}
+  .btn.ghost{background:transparent;color:var(--ink);border:1px solid rgba(27,26,23,.26)}
+  .hint{font-size:10.5px;color:var(--ink3);letter-spacing:.1em;text-align:center}
+
+  /* ---------- 01 today ---------- */
+  #today{padding-top:0}
+  .today-nav{height:46px;margin-top:44px;display:flex;align-items:center;justify-content:space-between;padding:0 22px}
+  .today-nav .mark{font-family:var(--serif);font-size:12px;letter-spacing:.4em;color:var(--ink2);text-indent:.4em}
+  .today-nav .night{font-size:10.5px;letter-spacing:.14em;color:var(--ink3)}
+  .art-plate{margin:14px 26px 0;position:relative;background:#fff;border-radius:2px;overflow:hidden;
+             box-shadow:0 12px 30px rgba(60,45,25,.10)}
+  .art-plate img{width:100%;display:block}
+  .art-plate .cap{position:absolute;left:12px;bottom:9px;font-family:var(--serif);font-size:9.5px;
+                  color:rgba(27,26,23,.5);letter-spacing:.08em}
+  .q-text{font-family:var(--serif);font-size:19px;line-height:1.72;color:var(--ink);letter-spacing:.01em;margin-top:22px}
+  .q-sub{font-size:12px;line-height:1.9;color:var(--ink2);margin-top:14px}
+  .today-foot{margin-top:auto;padding:18px 26px 26px}
+  .today-foot .hint{margin-top:12px}
+
+  /* ---------- 02 canvas ---------- */
+  #canvas{background:var(--paper)}
+  .cv-top{height:48px;margin-top:44px;display:flex;align-items:center;justify-content:space-between;padding:0 18px}
+  .cv-top .close{width:34px;height:34px;display:flex;align-items:center;justify-content:center;color:var(--ink2)}
+  .cv-top .time{font-family:var(--serif);font-size:19px;letter-spacing:.06em;color:var(--ink)}
+  .cv-top .time span{font-size:10px;color:var(--ink3);letter-spacing:.12em;margin-left:6px}
+  .cv-top .done{font-size:12.5px;color:var(--red);letter-spacing:.1em;border-bottom:1px solid rgba(178,68,46,.35);padding-bottom:2px}
+  .cv-wrap{position:relative;margin:10px 18px 0;height:430px;background:#fff;border-radius:2px;overflow:hidden;
+           box-shadow:0 10px 26px rgba(60,45,25,.08)}
+  .cv-wrap img.ghost{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;opacity:.16;
+                     transition:opacity .25s;pointer-events:none}
+  .cv-wrap canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none}
+  .demoart{position:absolute;inset:0;width:100%;height:100%;display:none}
+  .demoart.on{display:block}
+  .card-art{position:relative;background:#fff}
+  .card-art #myArt{display:none}
+  .card-art #myArt.on{display:block}
+  .card-art > img{width:100%;display:none}
+  .card-art > img.on{display:block}
+  .card-art .demoart{position:absolute;inset:0;width:100%;height:100%;display:none}
+  .card-art .demoart.on{display:block}
+  .tools{display:flex;gap:8px;padding:16px 18px 0}
+  .tool{flex:1;height:34px;border:1px solid rgba(27,26,23,.16);background:transparent;border-radius:2px;
+        font-size:11.5px;color:var(--ink2);letter-spacing:.06em;cursor:pointer}
+  .tool.on{background:var(--ink);color:#F7F2E6;border-color:var(--ink)}
+  .colors{display:flex;gap:14px;align-items:center;padding:16px 22px 0}
+  .sw{width:24px;height:24px;border-radius:50%;border:2px solid transparent;cursor:pointer}
+  .sw.on{border-color:var(--ink);box-shadow:0 0 0 2px #fff inset}
+  .cv-hint{padding:14px 22px 0;font-size:10.5px;color:var(--ink3);letter-spacing:.1em;text-align:center}
+
+  /* ---------- 03 saving ---------- */
+  #saving{background:var(--paper);align-items:center;justify-content:center}
+  .saving-in{text-align:center;padding:0 40px}
+  .dotline{display:flex;gap:7px;justify-content:center;margin-bottom:26px}
+  .dotline i{width:6px;height:6px;border-radius:50%;background:var(--red);opacity:.25;animation:blink 1.4s infinite}
+  .dotline i:nth-child(2){animation-delay:.2s}.dotline i:nth-child(3){animation-delay:.4s}
+  @keyframes blink{0%,100%{opacity:.2}50%{opacity:1}}
+  .saving-in .t{font-family:var(--serif);font-size:17px;color:var(--ink);letter-spacing:.06em;line-height:1.8}
+
+  /* ---------- 04 card ---------- */
+  #card{background:var(--paper)}
+  .card-top{height:46px;margin-top:44px;display:flex;align-items:center;justify-content:space-between;padding:0 22px}
+  .card-top .mark{font-size:10.5px;letter-spacing:.2em;color:var(--ink3)}
+  .card-body{padding:6px 26px 0}
+  .card-art{background:#fff;border-radius:2px;overflow:hidden;box-shadow:0 12px 30px rgba(60,45,25,.10)}
+  .card-art img{width:100%;display:block}
+  .card-quote{font-family:var(--serif);font-size:17.5px;line-height:1.85;color:var(--ink);margin-top:24px;letter-spacing:.01em}
+  .card-note{font-size:10.5px;color:var(--ink3);margin-top:10px;letter-spacing:.06em}
+  .sound{display:flex;align-items:center;gap:12px;margin-top:22px;padding:13px 14px;background:rgba(27,26,23,.045);border-radius:2px}
+  .sound .play{width:30px;height:30px;border-radius:50%;background:var(--ink);display:flex;align-items:center;justify-content:center;flex:0 0 30px}
+  .sound .meta{flex:1}
+  .sound .t1{font-size:11.5px;color:var(--ink)}
+  .sound .t2{font-size:9.5px;color:var(--ink3);margin-top:3px;letter-spacing:.08em}
+  .sound .bars{display:flex;gap:2px;align-items:flex-end;height:16px}
+  .sound .bars i{width:2px;background:rgba(27,26,23,.35);display:block}
+  .card-actions{display:flex;gap:10px;margin-top:22px}
+  .card-actions .btn{height:48px;font-size:13px}
+  .card-foot{margin-top:auto;padding:18px 26px 24px;text-align:center}
+
+  /* ---------- 05 weather ---------- */
+  #weather{background:var(--paper)}
+  .w-body{padding:64px 26px 0}
+  .week{display:flex;gap:6px;margin-top:22px}
+  .day{flex:1;text-align:center}
+  .day .d{font-size:9px;color:var(--ink3);letter-spacing:.1em}
+  .day .box{margin-top:7px;height:64px;background:#fff;border:1px solid var(--line);border-radius:2px;
+            display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+  .day .box.empty{background:transparent;border-style:dashed}
+  .day .w{font-size:9px;color:var(--ink2);margin-top:7px;letter-spacing:.06em}
+  .sum{font-family:var(--serif);font-size:16px;line-height:1.9;margin-top:26px;color:var(--ink)}
+  .past{margin-top:26px;padding-top:20px;border-top:1px solid var(--line)}
+  .past .row{display:flex;gap:12px;align-items:center;margin-top:12px}
+  .past img{width:56px;height:56px;object-fit:cover;border-radius:2px}
+  .past .pt{font-size:11px;color:var(--ink2);line-height:1.7}
+  .w-foot{margin-top:auto;padding:18px 26px 26px}
+  .plate-cap{font-size:9.5px;color:var(--ink3);letter-spacing:.1em;margin-top:9px;text-align:right}
+  .nights{margin-bottom:16px}
+  .dots{display:flex;gap:7px;justify-content:center;margin-bottom:9px}
+  .dots i{width:7px;height:7px;border-radius:50%;background:rgba(27,26,23,.18)}
+  .dots i.done{background:var(--red)}
+  .dots i.now{border:1.4px solid var(--red);background:transparent}
+  .nt{font-size:10.5px;color:var(--ink3);letter-spacing:.1em;text-align:center}
+  .chips{display:flex;gap:7px;margin-top:16px;flex-wrap:wrap}
+  .chips span{font-size:10px;color:var(--ink2);border:1px solid var(--line);padding:4px 8px;border-radius:2px;letter-spacing:.06em}
+  .day .box.today{border-color:rgba(178,68,46,.55)}
+
+  @media (min-width:900px){ .side{display:block} }
+  @media (max-width:899px){
+    body{display:block;background:var(--paper)}
+    .stage{padding:0;display:block;height:100vh}
+    .phone{width:100%;height:100vh;height:100dvh;border-radius:0;box-shadow:none}
+    .notch{display:none}
+    .statusbar{padding-top:env(safe-area-inset-top)}
+  }
+  body.flat{background:var(--paper)}
+  body.flat .phone{width:390px;height:844px;border-radius:0;box-shadow:none}
+  body.flat .stage{gap:0;padding:0}
+  body.flat .notch{display:none}
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="side">
+    <div class="brand">画 题</div>
+    <div class="tag">微艺术疗愈 · 原型</div>
+    <div class="rule"></div>
+    <p>每晚一道画题，来自孤独症艺术家的原作。三分钟，回应它。</p>
+    <p>不给评分，只把你的画「接住」。</p>
+    <div class="qr"><img src="qr.png" alt="二维码"></div>
+    <p style="margin-top:9px;font-size:10.5px">手机扫码体验 · 或直接点击屏幕</p>
+  </div>
+
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="statusbar">
+      <span>9:41</span>
+      <span class="right">
+        <svg width="17" height="11" viewBox="0 0 17 11" fill="currentColor"><rect x="0" y="7" width="3" height="4" rx="1"/><rect x="4.5" y="5" width="3" height="6" rx="1"/><rect x="9" y="2.5" width="3" height="8.5" rx="1"/><rect x="13.5" y="0" width="3" height="11" rx="1"/></svg>
+        <svg width="16" height="11" viewBox="0 0 16 11" fill="currentColor"><path d="M8 10.5 5.6 8.1a3.4 3.4 0 0 1 4.8 0L8 10.5Zm0-4.4a6 6 0 0 0-4.2 1.7L2.3 6.3a8.2 8.2 0 0 1 11.4 0l-1.5 1.5A6 6 0 0 0 8 6.1Zm0-4.1c-2.8 0-5.4 1.1-7.3 3L0 3.5A12.2 12.2 0 0 1 8 0c3.1 0 5.9 1.3 8 3.5L14.5 5c-1.9-1.9-4.5-3-6.5-3Z"/></svg>
+        <svg width="25" height="12" viewBox="0 0 25 12" fill="none"><rect x=".5" y=".5" width="21" height="11" rx="3" stroke="currentColor" opacity=".4"/><rect x="2" y="2" width="15" height="8" rx="1.6" fill="currentColor"/><path d="M23 4v4a2.2 2.2 0 0 0 0-4Z" fill="currentColor" opacity=".5"/></svg>
+      </span>
+    </div>
+
+    <div class="app" id="app">
+
+      <!-- 01 -->
+      <section class="screen" id="s-today" data-name="today">
+        <div class="today-nav">
+          <span class="mark">画 题</span>
+          <span class="night">第 7 晚 · 21:40</span>
+        </div>
+        <div class="art-plate">
+          <img src="art-q1.webp" alt="程瑞《乒乓球桌》">
+        </div>
+        <div class="pad"><div class="plate-cap">程瑞《乒乓球桌》· 纸本 · 原作修复版</div></div>
+        <div class="pad">
+          <div class="eyebrow" style="margin-top:22px">今晚的题</div>
+          <div class="q-text" style="margin-top:12px">如果这张桌子是你家的，<br>你会把它放在哪？</div>
+          <p class="q-sub">画得像不像不重要。三分钟，够你说一句话。</p>
+        </div>
+        <div class="today-foot">
+          <div class="nights">
+            <div class="dots">
+              <i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i>
+            </div>
+            <div class="nt">第 7 晚 · 你已经画了 6 个晚上</div>
+          </div>
+          <button class="btn" id="startBtn">开始 · 3 分钟</button>
+          <div class="hint">今天不想画？可以只写一句</div>
+        </div>
+      </section>
+
+      <!-- 02 -->
+      <section class="screen" id="s-canvas" data-name="canvas">
+        <div class="cv-top">
+          <div class="close" id="cvClose">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 6l12 12M18 6L6 18"/></svg>
+          </div>
+          <div class="time" id="clock">3:00</div>
+          <div class="done" id="finishBtn">完成</div>
+        </div>
+        <div class="cv-wrap" id="cvWrap">
+          <img class="ghost" id="ghost" src="art-q1.webp" alt="">
+          <canvas id="cv"></canvas>
+          <svg class="demoart" id="demoArt" viewBox="0 0 354 430" preserveAspectRatio="none" aria-hidden="true">
+            <path d="M22 356 L336 346" stroke="#B2442E" stroke-width="3.6" fill="none" stroke-linecap="round"/>
+            <circle cx="300" cy="330" r="26" fill="none" stroke="#B2442E" stroke-width="2.6"/>
+            <circle cx="118" cy="368" r="3.2" fill="#3FCFA8"/>
+            <circle cx="146" cy="374" r="3.2" fill="#3FCFA8"/>
+            <circle cx="172" cy="366" r="3.2" fill="#3FCFA8"/>
+            <circle cx="198" cy="372" r="3.2" fill="#3FCFA8"/>
+          </svg>
+        </div>
+        <div class="tools">
+          <button class="tool on" data-mode="trace">描</button>
+          <button class="tool" data-mode="free">自由画</button>
+          <button class="tool" data-mode="fill">涂</button>
+        </div>
+        <div class="colors">
+          <div class="sw on" data-color="#B2442E" style="background:#B2442E"></div>
+          <div class="sw" data-color="#1B1A17" style="background:#1B1A17"></div>
+          <div class="sw" data-color="#3FCFA8" style="background:#3FCFA8"></div>
+          <div class="sw" data-color="#7A6B9A" style="background:#7A6B9A"></div>
+          <div class="hint" style="margin-left:auto;padding:0" id="modeHint">描着画，也可以画到画外面</div>
+        </div>
+        <div class="cv-hint">不用画完，停下来就好</div>
+      </section>
+
+      <!-- 03 -->
+      <section class="screen" id="s-saving" data-name="saving">
+        <div class="saving-in">
+          <div class="dotline"><i></i><i></i><i></i></div>
+          <div class="t" id="saveText">正在看你用了哪些颜色</div>
+        </div>
+      </section>
+
+      <!-- 04 -->
+      <section class="screen" id="s-card" data-name="card">
+        <div class="card-top">
+          <span class="mark">第 7 晚 · 21:43</span>
+          <span class="mark">存好了</span>
+        </div>
+        <div class="card-body">
+          <div class="card-art"><img class="guide" id="cardGuide" src="art-q1.webp" alt=""><img id="myArt" alt="你的画"><svg class="demoart" id="demoArtCard" viewBox="0 0 354 430" preserveAspectRatio="none" aria-hidden="true">
+            <path d="M22 356 L336 346" stroke="#B2442E" stroke-width="3.6" fill="none" stroke-linecap="round"/>
+            <circle cx="300" cy="330" r="26" fill="none" stroke="#B2442E" stroke-width="2.6"/>
+            <circle cx="118" cy="368" r="3.2" fill="#3FCFA8"/>
+            <circle cx="146" cy="374" r="3.2" fill="#3FCFA8"/>
+            <circle cx="172" cy="366" r="3.2" fill="#3FCFA8"/>
+            <circle cx="198" cy="372" r="3.2" fill="#3FCFA8"/>
+          </svg></div>
+          <div class="card-quote" id="cardQuote">今晚你画了很多直线，<br>只有一处是弯的。</div>
+          <div class="card-note">这是描述，不是评分。</div>
+          <div class="sound">
+            <div class="play"><svg width="11" height="12" viewBox="0 0 11 12" fill="#F6F1E9"><path d="M0 0l11 6-11 6z"/></svg></div>
+            <div class="meta"><div class="t1">窗台上的雨</div><div class="t2">60 秒 · 跟着呼吸</div></div>
+            <div class="bars"><i style="height:6px"></i><i style="height:11px"></i><i style="height:8px"></i><i style="height:15px"></i><i style="height:9px"></i><i style="height:13px"></i><i style="height:6px"></i></div>
+          </div>
+          <div class="card-actions">
+            <button class="btn ghost" id="toWeather">存进情绪天气</button>
+            <button class="btn" id="toSend">寄给程瑞</button>
+          </div>
+        </div>
+        <div class="card-foot">
+          <div class="hint">明天 21:30，我在这里</div>
+        </div>
+      </section>
+
+      <!-- 05 -->
+      <section class="screen" id="s-weather" data-name="weather">
+        <div class="w-body">
+          <div class="eyebrow">这七天</div>
+          <h2 class="serif" style="font-size:26px;margin-top:10px;line-height:1.4">你的情绪天气</h2>
+          <div class="week" id="week"></div>
+          <div class="sum">四天画了直线，两天留白，<br>只有一天，你绕着桌子画了一个圈。</div>
+          <div class="chips"><span>直线 4</span><span>留白 2</span><span>绕圈 1</span><span>颜色 3 种</span></div>
+          <div class="past">
+            <div class="eyebrow">你回应过的画</div>
+            <div class="row">
+              <img src="art-q2.webp" alt="几何马">
+              <div class="pt">《几何马》· 芝芝<br>第 1 晚 · 你给它画了一条跑道</div>
+            </div>
+          </div>
+        </div>
+        <div class="w-foot">
+          <button class="btn ghost" id="toWall">去画墙，看看别人的回应</button>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var app = document.getElementById('app');
+  var screens = [].slice.call(document.querySelectorAll('.screen'));
+  var current = null, stack = [];
+  var params = new URLSearchParams(location.search);
+
+  function show(name, push){
+    var next = document.getElementById('s-' + name);
+    if(!next || current === next) return;
+    screens.forEach(function(s){ s.classList.remove('active'); });
+    if(current) current.classList.add('behind');
+    next.classList.add('active'); next.scrollTop = 0;
+    var prev = current; current = next;
+    setTimeout(function(){ if(prev) prev.classList.remove('behind'); }, 540);
+    if(push !== false && stack[stack.length-1] !== name) stack.push(name);
+    if(name === 'canvas') startClock();
+    else stopClock();
+  }
+
+  /* ---------- canvas ---------- */
+  var cv = document.getElementById('cv');
+  var ctx = cv.getContext('2d');
+  var wrap = document.getElementById('cvWrap');
+  var ghost = document.getElementById('ghost');
+  var color = '#B2442E', mode = 'trace', drawing = false, dirty = false;
+  var DPR = window.devicePixelRatio || 1;
+
+  function fit(){
+    var r = wrap.getBoundingClientRect();
+    var keep = null;
+    if(dirty && cv.width > 4 && cv.height > 4){ try { keep = cv.toDataURL(); } catch(e){} }
+    cv.width = Math.round(r.width * DPR);
+    cv.height = Math.round(r.height * DPR);
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    if(keep){
+      var im = new Image();
+      im.onload = function(){ try { ctx.drawImage(im, 0, 0, r.width, r.height); } catch(e){} };
+      im.src = keep;
+    }
+  }
+  window.addEventListener('resize', fit);
+  fit();
+
+  function pos(e){
+    var r = cv.getBoundingClientRect();
+    var p = e.touches ? e.touches[0] : e;
+    return {x: p.clientX - r.left, y: p.clientY - r.top};
+  }
+  function down(e){
+    e.preventDefault(); drawing = true; dirty = true;
+    var p = pos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y);
+    ctx.strokeStyle = color; ctx.lineWidth = mode === 'fill' ? 22 : 3.4;
+    ctx.globalAlpha = 1;
+  }
+  function move(e){
+    if(!drawing) return; e.preventDefault();
+    var p = pos(e); ctx.lineTo(p.x, p.y); ctx.stroke();
+  }
+  function up(){ drawing = false; }
+  cv.addEventListener('pointerdown', down);
+  cv.addEventListener('pointermove', move);
+  window.addEventListener('pointerup', up);
+  cv.addEventListener('touchstart', down, {passive:false});
+  cv.addEventListener('touchmove', move, {passive:false});
+  cv.addEventListener('touchend', up);
+
+  document.querySelectorAll('.tool').forEach(function(b){
+    b.addEventListener('click', function(){
+      document.querySelectorAll('.tool').forEach(function(x){ x.classList.remove('on'); });
+      b.classList.add('on');
+      mode = b.dataset.mode;
+      ghost.style.opacity = mode === 'free' ? 0 : (mode === 'fill' ? .3 : .16);
+      document.getElementById('modeHint').textContent =
+        mode === 'free' ? '画什么都行，画到纸外面也可以'
+        : mode === 'fill' ? '大笔，用来铺颜色'
+        : '描着画，也可以画到画外面';
+    });
+  });
+  document.querySelectorAll('.sw').forEach(function(s){
+    s.addEventListener('click', function(){
+      document.querySelectorAll('.sw').forEach(function(x){ x.classList.remove('on'); });
+      s.classList.add('on'); color = s.dataset.color;
+    });
+  });
+
+  /* clock */
+  var t0 = 180, left = 180, timer = null;
+  function fmt(s){ return Math.floor(s/60) + ':' + ('0' + (s%60)).slice(-2); }
+  function startClock(){
+    stopClock(); left = 180;
+    document.getElementById('clock').textContent = fmt(left);
+    timer = setInterval(function(){
+      left--; if(left < 0){ left = 0; }
+      document.getElementById('clock').textContent = fmt(left);
+      if(left === 0){ stopClock(); finish(); }
+    }, 1000);
+  }
+  function stopClock(){ if(timer){ clearInterval(timer); timer = null; } }
+
+  document.getElementById('cvClose').addEventListener('click', function(){ show('today'); });
+
+  /* saved artworks / demo strokes */
+  function drawDemo(){
+    if(dirty) return;
+    var w = cv.width / DPR, h = cv.height / DPR;
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    // 一条很长的横线（桌沿）
+    ctx.strokeStyle = '#B2442E'; ctx.lineWidth = 3.6; ctx.globalAlpha = 1;
+    ctx.beginPath(); ctx.moveTo(w*0.12, h*0.62); ctx.lineTo(w*0.86, h*0.58); ctx.stroke();
+    // 两段竖线（桌腿）
+    ctx.beginPath(); ctx.moveTo(w*0.2, h*0.62); ctx.lineTo(w*0.21, h*0.84); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(w*0.76, h*0.59); ctx.lineTo(w*0.75, h*0.8); ctx.stroke();
+    // 一个圈（唯一一处弯的）
+    ctx.strokeStyle = '#1B1A17'; ctx.lineWidth = 2.6;
+    ctx.beginPath();
+    for(var i=0;i<=64;i++){
+      var a = i/64*Math.PI*2, r = 26 + Math.sin(a*3)*3;
+      var x = w*0.52 + Math.cos(a)*r, y = h*0.36 + Math.sin(a)*r*0.8;
+      if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    }
+    ctx.stroke();
+    // 几个点
+    ctx.fillStyle = '#3FCFA8';
+    [[0.32,0.72],[0.38,0.76],[0.44,0.73],[0.6,0.7]].forEach(function(p){
+      ctx.beginPath(); ctx.arc(w*p[0], h*p[1], 3.2, 0, 7); ctx.fill();
+    });
+    dirty = true;
+  }
+
+  /* flow */
+  function finish(){
+    stopClock();
+    show('saving');
+    var texts = ['正在看你用了哪些颜色', '数了数你的直线', '留了一句话给你'];
+    var i = 0, t = document.getElementById('saveText');
+    var iv = setInterval(function(){
+      i++; if(i < texts.length) t.textContent = texts[i];
+    }, 800);
+    setTimeout(function(){
+      clearInterval(iv);
+      var img = document.getElementById('myArt');
+      try { img.src = cv.toDataURL('image/png'); img.classList.add('on'); } catch(e){}
+      show('card');
+    }, 2400);
+  }
+  document.getElementById('finishBtn').addEventListener('click', finish);
+  document.getElementById('startBtn').addEventListener('click', function(){
+    show('canvas');
+  });
+  document.getElementById('toWeather').addEventListener('click', function(){ show('weather'); });
+  document.getElementById('toSend').addEventListener('click', function(){
+    this.textContent = '已寄出 · 谢谢你';
+    this.style.background = '#4F6B4A';
+  });
+  document.getElementById('toWall').addEventListener('click', function(){ show('weather'); });
+
+  /* week grid */
+  var week = document.getElementById('week');
+  var days = [
+    ['一','line','直线'], ['二','free','留白'], ['三','line','直线'],
+    ['四','ring','绕圈'], ['五','line','直线'], ['六','free','留白'], ['日','line','直线','今天']
+  ];
+  var marks = {
+    line:'<svg width="26" height="26" viewBox="0 0 26 26"><path d="M3 18L23 11" stroke="#B2442E" stroke-width="2.4" stroke-linecap="round"/></svg>',
+    free:'',
+    ring:'<svg width="26" height="26" viewBox="0 0 26 26"><circle cx="13" cy="13" r="8" fill="none" stroke="#1B1A17" stroke-width="2"/></svg>'
+  };
+  days.forEach(function(d){
+    var el = document.createElement('div');
+    el.className = 'day';
+    el.innerHTML = '<div class="d">' + d[0] + '</div>'
+      + '<div class="box' + (d[3] ? ' today' : '') + (d[1] === 'free' ? ' empty' : '') + '">'
+      + (marks[d[1]] || '') + '</div>'
+      + '<div class="w">' + d[2] + '</div>';
+    week.appendChild(el);
+  });
+
+  /* route */
+  if(params.has('screen')) document.body.classList.add('flat');
+  var start = params.get('screen') || 'today';
+  var demo = false;
+  if(start === 'canvas-demo'){ demo = true; start = 'canvas'; }
+  stack = [start]; show(start, false);
+  if(demo){ document.getElementById('demoArt').classList.add('on'); }
+  if(start === 'card'){ document.getElementById('cardGuide').classList.add('on'); document.getElementById('demoArtCard').classList.add('on'); }
+  if(start === 'canvas'){ /* keep clock running */ }
+})();
+</script>
+</body>
+</html>
